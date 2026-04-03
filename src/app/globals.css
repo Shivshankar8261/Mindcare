@@ -3,25 +3,118 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Light mode: student-friendly Calm Futurism */
+  --mc-bg: #F7FAFF;
+  --mc-text: #0B1220;
+  --mc-muted: rgba(11, 18, 32, 0.68);
+
+  /* Friendly accents */
+  --mc-teal: #0891B2;
+  --mc-saffron: #F59E0B;
+  --mc-rose: #FB7185;
+
+  --mc-card: rgba(255, 255, 255, 0.72);
+  --mc-border: rgba(11, 18, 32, 0.12);
+
+  --mc-glow-teal: 0 0 22px rgba(8, 145, 178, 0.22);
+  --mc-glow-saffron: 0 0 22px rgba(245, 158, 11, 0.18);
+  --mc-glow-rose: 0 0 22px rgba(251, 113, 133, 0.18);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  height: 100%;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  background: var(--mc-bg);
+  color: var(--mc-text);
+  /* Fallbacks keep typography readable if font CSS variables are ever missing (e.g. edge error states). */
+  font-family: var(--font-hind, ui-sans-serif), ui-sans-serif, system-ui, -apple-system,
+    Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  overflow-x: hidden;
+}
+
+/* Subtle animated gradient mesh background */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -220px;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(8, 145, 178, 0.20), transparent 55%),
+    radial-gradient(circle at 80% 20%, rgba(245, 158, 11, 0.16), transparent 58%),
+    radial-gradient(circle at 30% 85%, rgba(251, 113, 133, 0.14), transparent 60%),
+    radial-gradient(circle at 70% 75%, rgba(8, 145, 178, 0.10), transparent 58%);
+  filter: blur(46px) saturate(115%);
+  opacity: 0.9;
+  z-index: -2;
+  animation: mcMeshShift 16s ease-in-out infinite;
+  pointer-events: none;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.0),
+    rgba(247, 250, 255, 0.98)
+  );
+  z-index: -1;
+  pointer-events: none;
+}
+
+@keyframes mcMeshShift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(6%, -4%, 0) scale(1.04);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+/* Accessibility: clear focus rings */
+:focus-visible {
+  outline: 2px solid rgba(8, 145, 178, 0.95);
+  outline-offset: 2px;
+}
+
+@layer base {
+  * {
+    border-color: var(--mc-border);
+  }
+
+  .glass-card {
+    background: var(--mc-card);
+    border: 1px solid rgba(11, 18, 32, 0.14);
+    border-radius: 16px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow:
+      0 16px 38px rgba(0, 0, 0, 0.10),
+      inset 0 1px 0 rgba(255, 255, 255, 0.30);
+  }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  .teal-glow {
+    box-shadow: var(--mc-glow-teal);
+  }
+
+  .saffron-glow {
+    box-shadow: var(--mc-glow-saffron);
+  }
+
+  .rose-glow {
+    box-shadow: var(--mc-glow-rose);
   }
 }

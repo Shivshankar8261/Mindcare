@@ -1,0 +1,209 @@
+// MindCare Prisma schema
+// NextAuth + MindCare domain models live together for a single database.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum Role {
+  STUDENT
+  COUNSELOR
+  ADMIN
+}
+
+enum WellnessLevel {
+  SEEDLING
+  SAPLING
+  TREE
+  BANYAN
+}
+
+enum TimeOfDay {
+  MORNING
+  MIDDAY
+  AFTERNOON
+  EVENING
+  NIGHT
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  ESCALATED
+}
+
+enum BadgeType {
+  STREAK_3
+  STREAK_7
+  STREAK_30
+  STREAK_100
+}
+
+model User {
+  // NextAuth required fields
+  id             String   @id @default(cuid())
+  email          String   @unique
+  name           String?
+  image          String?
+  emailVerified DateTime?
+
+  // MindCare required fields
+  role                Role            @default(STUDENT)
+  department          String?
+  year                Int?
+  preferredLanguage   String          @default("en")
+  createdAt           DateTime        @default(now())
+  streak              Int             @default(0)
+  xpPoints            Int             @default(0)
+  wellnessLevel      WellnessLevel  @default(SEEDLING)
+  consentCounselor    Boolean        @default(false)
+
+  // Credentials auth (optional; OAuth-only users may have it unset)
+  passwordHash String?
+
+  // Onboarding wellness goals (stored as JSON array)
+  wellnessGoals Json?
+
+  // NextAuth relations
+  accounts            Account[]
+  sessions            Session[]
+
+  // MindCare relations
+  moodEntries               MoodEntry[]
+  journalEntries            JournalEntry[]
+  chatSessions              ChatSession[]
+  appointmentsAsStudent     Appointment[] @relation("StudentAppointments")
+  appointmentsAsCounselor   Appointment[] @relation("CounselorAppointments")
+  achievements              Achievement[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token    String?
+  access_token     String?
+  expires_at       Int?
+  token_type       String?
+  scope            String?
+  id_token         String?
+  session_state    String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String  @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model MoodEntry {
+  id String @id @default(cuid())
+
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  timestamp DateTime
+  moodScore Int
+  emotions Json
+
+  energyLevel Int
+  sleepQuality Int
+
+  note String
+  academicPressure Boolean
+
+  timeOfDay TimeOfDay
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, timestamp])
+}
+
+model JournalEntry {
+  id String @id @default(cuid())
+
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  content String // encrypted at rest (see lib/encryption.ts)
+  detectedLanguage String
+  aiAnalysis Json
+
+  emotionTags Json
+  distressLevel Int
+  isShared Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model ChatSession {
+  id String @id @default(cuid())
+
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // messages is a JSON array: [{ role, content, timestamp }]
+  // message `content` is encrypted at rest (see lib/encryption.ts).
+  messages Json
+
+  isAnonymous Boolean @default(false)
+  crisisDetected Boolean @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model Appointment {
+  id String @id @default(cuid())
+
+  studentId String
+  counselorId String
+  dateTime DateTime
+  status AppointmentStatus @default(PENDING)
+  notes String?
+
+  createdAt DateTime @default(now())
+
+  student   User @relation("StudentAppointments", fields: [studentId], references: [id], onDelete: Cascade)
+  counselor User @relation("CounselorAppointments", fields: [counselorId], references: [id], onDelete: Restrict)
+
+  @@index([counselorId, dateTime])
+}
+
+model Achievement {
+  id String @id @default(cuid())
+
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  badgeType BadgeType
+  earnedAt DateTime @default(now())
+
+  @@unique([userId, badgeType])
+}
